@@ -24,8 +24,22 @@ getTransition = function() {
 
 Promise.all([
   d3.json("./data/neighbourhoods.geojson"),
-  d3.csv("./data/listings.csv")
+  d3.dsv(",", "./data/listings.csv", (d) => {
+    return {
+      id: d.id,
+      name: d.name,
+      neighbourhood: d.neighbourhood,
+      latitude: +d.latitude,
+      longitude: +d.longitude,
+      availability_365: +d.availability_365,
+      price: +d.price
+    };
+  })
 ]).then(function ([geojson, listings]) {
+
+  // print out data
+  console.log(listings);  
+
 
   // prepare data
   hoods = d3.rollup(listings, v => Math.round(d3.mean(v, d => d.availability_365) / 365 * 100), d => d.neighbourhood);
