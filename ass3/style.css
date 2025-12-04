@@ -1,7 +1,9 @@
 body {
   font-family: 'Arial', sans-serif; 
 }
-
+.back {
+  fill: black;
+}
 .responsive-svg-container {
   margin-right: auto;
   margin-left: auto;
