@@ -3,6 +3,7 @@ body {
 }
 .back {
   fill: black;
+  cursor: pointer;
 }
 .responsive-svg-container {
   margin-right: auto;

@@ -11,8 +11,17 @@ var svg = d3.select("#map")
   .append("svg")
   .attr("viewBox", [0, 0, width, height]);
 
+var mapGroup = svg.append("g")
+  .attr("id", "map-group");
+var pointsGroup = svg.append("g")
+  .attr("id", "points-group");
 
- 
+getTransition = function() {
+  return d3.transition()
+    .duration(300)
+    .ease(d3.easeLinear);
+}
+
 Promise.all([
   d3.json("./data/neighbourhoods.geojson"),
   d3.csv("./data/listings.csv")
@@ -31,61 +40,43 @@ Promise.all([
   projection = d3.geoMercator()
 
 
-   // Zoom  out area
-  svg.append("rect")
-    .attr("class", "back")
-    .attr("width", 50)
-    .attr("height", 30)
-    .attr("x", width-100)
-    .attr("y", height - 50)
-    .on("click",  e => {
-      console.log("Zoomout");
-           const t = d3.transition()
-      .duration(300)
-      .ease(d3.easeLinear);
-      e.stopPropagation();
-      svg.selectAll(".neighbourhood").transition(t).remove();
-    
-       projection.fitSize([width, height], geojson);
-       d3.selectAll("path")
-       .data(geojson.features)
-        .enter().append("path")
-        .attr("fill", d => colors(hoods.get(d.properties.neighbourhood)))
-        .attr("d", d3.geoPath().projection(projection))
-        .attr("class", "neighbourhood")
-        .attr("note", d => d.properties.neighbourhood)
-        .style("stroke", "black")
-        .on("click", zoomin)
-        .append("title")
-        .text(d => `${d.properties.neighbourhood}\n${hoods.get(d.properties.neighbourhood)}%`);
-    drawCity(geojson)
-    });
-
    function drawCity(geojson) {
       projection.fitSize([width, height], geojson);
   
 
-      return svg.append("g")
-        .selectAll("path")
+      const t = d3.transition()
+      .duration(300)
+      .ease(d3.easeLinear);
+
+       // hide back button
+        d3.selectAll("#back").remove();
+       // revome previous points
+       d3.selectAll("circle").remove();
+
+      var mg = d3.select("#map-group");
+
+      mg.selectAll("path").remove();
+      mg.selectAll("path")
         .data(geojson.features)
-        .enter().append("path")
+        .enter()
+        .append("path")
         .attr("fill", d => colors(hoods.get(d.properties.neighbourhood)))
         //.attr("fill", "white")
         .attr("d", d3.geoPath().projection(projection))
         .attr("class", "neighbourhood")
         .attr("note", d => d.properties.neighbourhood)
         .style("stroke", "black")
-        .on("click", zoomin)
+        .on("click", drawDistrict)
         .append("title")
         .text(d => `${d.properties.neighbourhood}\n${hoods.get(d.properties.neighbourhood)}%`);
+
+       
     }
 
 
     drawCity(geojson);
 
-
-//  display_overview();
-
+    // prepare points data
     points = listings.map(d => {
       return {
         type: "Feature",
@@ -101,26 +92,14 @@ Promise.all([
         }
       };
     });
-    
-    console.log("Points:", points);
-
-    // create empty group for points (fill in at zoom)
-     var g2 = svg.append("g")
-      .attr("class", "points-group")
-      .selectAll("circle")
-      .data({})
-      .enter().append("circle")
 
 
-
-  // Zoom function
-  function zoomin(event, d) {
+  // Display District function
+  function drawDistrict(event, d) {
     event.stopPropagation();
 
 
-      console.log("Zoomin on ", d);
-      //const [[x0, y0], [x1, y1]] = d3.geoPath().projection(projection).bounds(d);
-      //console.log(x0, y0, x1, y1);
+      //console.log("Zoomin on ", d);
       projection.fitSize([width, height], d);
 
       const t = d3.transition()
@@ -135,25 +114,18 @@ Promise.all([
         .filter(dd => dd === d)
         .transition(t)
         .attr("stroke-width", 3);
-    
-      /*  d3.selectAll("circle")
-        .attr("cx", dd => projection(dd.geometry.coordinates)[0])
-        .attr("cy", dd => projection(dd.geometry.coordinates)[1])
-        .attr("visibility", "hidden")
-        .filter(dd => dd.properties.neighbourhood === d.properties.neighbourhood)
-        .transition(t)
-       .attr("visibility", "visible")*/
+
  
-       console.log("Adding circles for neighbourhood:", d.properties.neighbourhood);
+       //console.log("Adding circles for neighbourhood:", d.properties.neighbourhood);
    
         // revome previous points
        d3.selectAll("circle").remove();
         // show new points group
       // append points for this neighbourhood
        var addpoints =  points.filter(dd => dd.properties.neighbourhood === d.properties.neighbourhood)
-        console.log("Points to add:", addpoints);
+       //console.log("Points to add:", addpoints);
       
-       d3.selectAll(".points-group")
+       svg.select("#points-group")
         .selectAll("circle")
         .data(addpoints)
       .enter()
@@ -172,7 +144,7 @@ Promise.all([
     .attr("xlink:href", 'https://cdn3.iconfinder.com/data/icons/softwaredemo/PNG/24x24/DrawingPin1_Blue.png')
     */
 
-       d3.selectAll(".points-group")
+       svg.select("#points-group")
        .selectAll("circle")
        .transition(t)
        .attr("visibility", "visible") 
@@ -180,8 +152,28 @@ Promise.all([
        .transition(t)
        .attr("opacity", 0.5);
 
-    }
+    
 
+  // Zoom  out area
+  svg.append("text")
+    .attr("id", "back")
+    .attr("class", "back")
+    .attr("width", 50)
+    .attr("height", 30)
+    .attr("x", width-100)
+    .attr("y", height - 50)
+    .append("tspan")
+    .text("[ BACK ]")
+    .on("click",  e => {
+      console.log("Zoomout");
+           const t = d3.transition()
+      .duration(300)
+      .ease(d3.easeLinear);
+      e.stopPropagation();
+       projection.fitSize([width, height], geojson);
+       drawCity(geojson)
+    });
+  }
   // Create a legend for the color scale
   const legend = svg.append("g")
     .attr("transform", "translate(20, 30)");
